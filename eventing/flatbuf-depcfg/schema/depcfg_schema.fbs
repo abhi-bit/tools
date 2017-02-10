@@ -20,3 +20,5 @@ table Bucket {
   bucketName:string;
   alias:string;
 }
+
+root_type Config;

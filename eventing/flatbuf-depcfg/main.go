@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/abhi-bit/tools/eventing/flatbuf-depcfg/appcfg"
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -48,6 +49,13 @@ func main() {
 	builder.Finish(config)
 
 	buf := builder.FinishedBytes()
+
+	err := ioutil.WriteFile("depcfg", buf, 0644)
+	if err != nil {
+		fmt.Printf("Failed to write flatbuf encoded message to disk, err: %v\n", err)
+		return
+	}
+
 	c := appcfg.GetRootAsConfig(buf, 0)
 
 	fmt.Println("code: ", string(c.AppCode()), " name: ", string(c.AppName()), c.Id())
