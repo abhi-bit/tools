@@ -38,7 +38,13 @@ func main() {
 	appcfg.DepCfgAddRbacuser(builder, rbacuser)
 	depcfg := appcfg.DepCfgEnd(builder)
 
-	appCode := builder.CreateString("function OnUpdate(doc, meta) {log(meta.cas)}")
+	handlerData, err := ioutil.ReadFile("./credit_score.js")
+	if err != nil {
+		fmt.Printf("Failed to read data from credit_score.js, err: %v\n", err)
+		return
+	}
+
+	appCode := builder.CreateString(string(handlerData))
 	appName := builder.CreateString("credit_score")
 
 	appcfg.ConfigStart(builder)
@@ -52,7 +58,7 @@ func main() {
 
 	buf := builder.FinishedBytes()
 
-	err := ioutil.WriteFile("depcfg", buf, 0644)
+	err = ioutil.WriteFile("depcfg", buf, 0644)
 	if err != nil {
 		fmt.Printf("Failed to write flatbuf encoded message to disk, err: %v\n", err)
 		return
