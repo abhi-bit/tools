@@ -38,7 +38,7 @@ func main() {
 	appcfg.DepCfgAddRbacuser(builder, rbacuser)
 	depcfg := appcfg.DepCfgEnd(builder)
 
-	appCode := builder.CreateString("func OnUpdate(doc, meta) {log(meta.cas)}")
+	appCode := builder.CreateString("function OnUpdate(doc, meta) {log(meta.cas)}")
 	appName := builder.CreateString("credit_score")
 
 	appcfg.ConfigStart(builder)
