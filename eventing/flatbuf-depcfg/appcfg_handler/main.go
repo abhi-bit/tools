@@ -23,20 +23,22 @@ func main() {
 	builder.PrependUOffsetT(csBucket)
 	buckets := builder.EndVector(1)
 
-	auth := builder.CreateString("Admin:asdasd")
 	metaBucket := builder.CreateString("eventing")
 	sourceBucket := builder.CreateString("default")
+	rbacpass := builder.CreateString("asdasd")
+	rbacrole := builder.CreateString("admin")
+	rbacuser := builder.CreateString("eventing")
 
 	appcfg.DepCfgStart(builder)
 	appcfg.DepCfgAddBuckets(builder, buckets)
-	appcfg.DepCfgAddTickDuration(builder, 5000)
-	appcfg.DepCfgAddWorkerCount(builder, 3)
-	appcfg.DepCfgAddAuth(builder, auth)
 	appcfg.DepCfgAddMetadataBucket(builder, metaBucket)
 	appcfg.DepCfgAddSourceBucket(builder, sourceBucket)
+	appcfg.DepCfgAddRbacpass(builder, rbacpass)
+	appcfg.DepCfgAddRbacrole(builder, rbacrole)
+	appcfg.DepCfgAddRbacuser(builder, rbacuser)
 	depcfg := appcfg.DepCfgEnd(builder)
 
-	appCode := builder.CreateString("func OnUpdate() {log(meta.cas)}")
+	appCode := builder.CreateString("func OnUpdate(doc, meta) {log(meta.cas)}")
 	appName := builder.CreateString("credit_score")
 
 	appcfg.ConfigStart(builder)
@@ -58,11 +60,13 @@ func main() {
 
 	c := appcfg.GetRootAsConfig(buf, 0)
 
-	fmt.Println("code: ", string(c.AppCode()), " name: ", string(c.AppName()), c.Id())
+	fmt.Println("code:", string(c.AppCode()), " name:", string(c.AppName()), " appid:", c.Id())
 
 	d := new(appcfg.DepCfg)
 	dd := c.DepCfg(d)
-	fmt.Println("auth:", string(dd.Auth()), " src:", string(dd.SourceBucket()), " meta:", string(dd.MetadataBucket()))
+	fmt.Println("src:", string(dd.SourceBucket()), " meta:", string(dd.MetadataBucket()),
+		" rbacuser:", string(dd.Rbacuser()), " rbacpass:", string(dd.Rbacpass()),
+		" rbacrole:", string(dd.Rbacrole()))
 
 	b := new(appcfg.Bucket)
 	for i := 0; i < dd.BucketsLength(); i++ {
