@@ -3,13 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"strconv"
+	"strings"
 
 	"github.com/couchbase/cbauth"
 	"github.com/couchbase/cbauth/metakv"
 )
 
-type TestBlob struct {
+type testBlob struct {
 	A int
 }
 
@@ -19,7 +21,6 @@ func metakvFetch(path string, v interface{}) (bool, error) {
 		fmt.Printf("Path: %s Get failed, err: %v\n", path, err)
 		return false, nil
 	}
-
 	if value == nil {
 		return false, err
 	}
@@ -57,7 +58,7 @@ func metakvDel(path string) error {
 func metakvRecursiveDel(dirpath string) error {
 	err := metakv.RecursiveDelete(dirpath)
 	if err != nil {
-		fmt.Printf("dirpath: %s failed to perform recursive delete, err: %v\n", err)
+		fmt.Printf("dirpath: %s failed to perform recursive delete, err: %v\n", dirpath, err)
 	}
 	return err
 }
@@ -81,7 +82,7 @@ func main() {
 
 	for i := 0; i < 2; i++ {
 		path := "/A/" + strconv.Itoa(i)
-		value := &TestBlob{A: i}
+		value := &testBlob{A: i}
 
 		err = metakvUpsert(path, value)
 		if err != nil {
@@ -99,7 +100,11 @@ func main() {
 	} else {
 		fmt.Printf("Children:\n")
 		for _, entry := range entries {
-			fmt.Printf("\tK: %s\n\tV: %s\n", entry.Path, string(entry.Value))
+			data := strings.Split(entry.Path, "/")
+			err := ioutil.WriteFile(data[len(data)-2]+data[len(data)-1], entry.Value, 0777)
+			if err != nil {
+				fmt.Printf("Failed to write key's value to disk, err: %v\n", err)
+			}
 		}
 	}
 
