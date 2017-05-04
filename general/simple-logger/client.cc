@@ -5,8 +5,14 @@
 #include <thread>
 #include <chrono>
 
+#include <sstream>
+
+std::ostringstream os;
+LogLevel desiredLogLevel = LogLevel(0);
+void setLogLevel(LogLevel level) { desiredLogLevel = level; }
+
 int main() {
-    Log(logInfo) << "hello world\n";
+    LOG(logInfo) << "hello world\n";
 
     // std::this_thread::sleep_for (std::chrono::seconds(1));
 
@@ -14,6 +20,6 @@ int main() {
     f.PrintA();
 
     std::cout << FlushLog() << std::endl;
-    Log(logInfo) << "I'm done\n";
+    LOG(logInfo) << "I'm done\n";
     std::cout << FlushLog() << std::endl;
 }
