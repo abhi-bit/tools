@@ -25,7 +25,7 @@ op_callback(lcb_t, int cbtype, const lcb_RESPBASE *rb)
 {
     fprintf(stderr, "Got callback for %s.. ", lcb_strcbtype(cbtype));
     if (rb->rc != LCB_SUCCESS && rb->rc != LCB_SUBDOC_MULTI_FAILURE) {
-        fprintf(stderr, "Operation failed (%s)\n", lcb_strerror(NULL, rb->rc));
+        fprintf(stderr, "Operation failed rc: %x (%s)\n", rb->rc, lcb_strerror(NULL, rb->rc));
         return;
     }
 
@@ -110,22 +110,28 @@ int main(int argc, char **argv)
 
     std::vector<lcb_SDSPEC> specs;
 
-    lcb_SDSPEC spec = {0};
-    spec.sdcmd = LCB_SDCMD_DICT_UPSERT;
-    spec.options = LCB_SDSPEC_F_MKINTERMEDIATES | LCB_SDSPEC_F_XATTR_MACROVALUES;
-    LCB_SDSPEC_SET_PATH(&spec, "_eventing.cas", 13);
+    lcb_SDSPEC spec1, spec2 = {0};
+    spec1.sdcmd = LCB_SDCMD_DICT_UPSERT;
+    spec1.options = LCB_SDSPEC_F_MKINTERMEDIATES | LCB_SDSPEC_F_XATTR_MACROVALUES;
+    LCB_SDSPEC_SET_PATH(&spec1, "_eventing.cas", 13);
     static const std::string MUTATION_CAS_MACRO("\"${Mutation.CAS}\"");
-    LCB_SDSPEC_SET_VALUE(&spec, MUTATION_CAS_MACRO.c_str(), MUTATION_CAS_MACRO.size());
-    specs.push_back(spec);
+    LCB_SDSPEC_SET_VALUE(&spec1, MUTATION_CAS_MACRO.c_str(), MUTATION_CAS_MACRO.size());
+    specs.push_back(spec1);
 
-    spec.sdcmd = LCB_SDCMD_ARRAY_ADD_LAST;
-    spec.options = LCB_SDSPEC_F_MKINTERMEDIATES | LCB_SDSPEC_F_XATTRPATH ;
-    LCB_SDSPEC_SET_PATH(&spec, "_eventing.timer", 15);
-    LCB_SDSPEC_SET_VALUE(&spec, "\"12:00:00\"", 10);
-    specs.push_back(spec);
+    spec1.sdcmd = LCB_SDCMD_ARRAY_ADD_LAST;
+    spec1.options = LCB_SDSPEC_F_MKINTERMEDIATES | LCB_SDSPEC_F_XATTRPATH ;
+    LCB_SDSPEC_SET_PATH(&spec1, "_eventing.timers", 16);
+    LCB_SDSPEC_SET_VALUE(&spec1, "\"12:00:00\"", 10);
+    specs.push_back(spec1);
+
+    spec2.sdcmd = LCB_SDCMD_SET_FULLDOC;
+    LCB_SDSPEC_SET_PATH(&spec2, "", 0);
+    LCB_SDSPEC_SET_VALUE(&spec2, "{\"val\":\"1234\"}", 14);
+    specs.push_back(spec2);
 
     mcmd.specs = specs.data();
     mcmd.nspecs = specs.size();
+    mcmd.cmdflags = LCB_CMDSUBDOC_F_UPSERT_DOC;
 
     rc = lcb_subdoc3(instance, NULL, &mcmd);
     assert(rc == LCB_SUCCESS);
