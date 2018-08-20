@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"os"
-	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/couchbase/eventing/logging"
@@ -27,26 +27,17 @@ type userBlob struct {
 
 func main() {
 	var connStr, username, password, CBbucket string
-	var rate int
+	var rate, routines int
+	var itemCount uint64
 	var err error
 
-	if len(os.Args) == 5 {
-		connStr = os.Args[1]
-		username = os.Args[2]
-		password = os.Args[3]
-		CBbucket = os.Args[4]
-		rate, err = strconv.Atoi(os.Args[5])
-		if err != nil {
-			logging.Errorf("Failed to convert rate to int, err: %v", err)
-			return
-		}
-	} else {
-		connStr = "couchbase://localhost:12000"
-		username = "Administrator"
-		password = "asdasd"
-		CBbucket = "default"
-		rate = 10000
-	}
+	connStr = "couchbase://localhost:12000"
+	username = "Administrator"
+	password = "asdasd"
+	CBbucket = "default"
+	rate = 1000
+	routines = 100
+	itemCount = 1000 * 1000 * 1000
 
 	cluster, err := gocb.Connect(connStr)
 	if err != nil {
@@ -66,30 +57,43 @@ func main() {
 	}
 	defer bucket.Close()
 
-	ticker := time.NewTicker(time.Second / time.Duration(rate))
+	var i uint64
+	var wg sync.WaitGroup
+	wg.Add(routines)
 
-	i := 0
-	for {
-		select {
-		case <-ticker.C:
-			blob := &userBlob{
-				Score:            random(500, 700),
-				Followers:        random(1000, 1000000),
-				Coins:            random(123456789, 12345678901234),
-				MoneySpent:       random(0, 1),
-				LastActiveTs:     time.Now().Add(time.Duration(-1*random(1, 100000)) * time.Second).String(),
-				AccountCreatedTs: time.Now().Add(time.Duration(-1*random(1, 1000000)) * time.Second).String(),
-				CurrentLevel:     random(1000, 100000),
-				SocialID:         fmt.Sprintf("xyz_%d", random(100, 123456789)),
-				SessionCount:     random(1, 100),
-				IsBot:            false,
+	for r := 0; r < routines; r++ {
+		go func(wg *sync.WaitGroup) {
+			defer wg.Done()
+			ticker := time.NewTicker(time.Second / time.Duration(rate))
+			for {
+				select {
+				case <-ticker.C:
+					blob := &userBlob{
+						Score:            random(0, 700),
+						Followers:        random(1000, 1000000),
+						Coins:            random(123456789, 12345678901234),
+						MoneySpent:       random(0, 1),
+						LastActiveTs:     time.Now().Add(time.Duration(-1*random(1, 100000)) * time.Second).String(),
+						AccountCreatedTs: time.Now().Add(time.Duration(-1*random(1, 1000000)) * time.Second).String(),
+						CurrentLevel:     random(1000, 100000),
+						SocialID:         fmt.Sprintf("xyz_%d", random(100, 123456789)),
+						SessionCount:     random(1, 100),
+						IsBot:            false,
+					}
+
+					atomic.AddUint64(&i, 1)
+
+					bucket.Upsert(fmt.Sprintf("%d_%s", atomic.LoadUint64(&i), blob.SocialID), blob, 0)
+
+					if atomic.LoadUint64(&i) >= itemCount {
+						return
+					}
+				}
 			}
-
-			i++
-
-			bucket.Upsert(fmt.Sprintf("%d_%s", i, blob.SocialID), blob, 0)
-		}
+		}(&wg)
 	}
+
+	wg.Wait()
 }
 
 func random(min, max int) int {
