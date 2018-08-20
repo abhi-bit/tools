@@ -69,16 +69,16 @@ func main() {
 				select {
 				case <-ticker.C:
 					blob := &userBlob{
-						Score:            random(0, 700),
-						Followers:        random(1000, 1000000),
-						Coins:            random(123456789, 12345678901234),
-						MoneySpent:       random(0, 1),
-						LastActiveTs:     time.Now().Add(time.Duration(-1*random(1, 100000)) * time.Second).String(),
-						AccountCreatedTs: time.Now().Add(time.Duration(-1*random(1, 1000000)) * time.Second).String(),
-						CurrentLevel:     random(1000, 100000),
-						SocialID:         fmt.Sprintf("xyz_%d", random(100, 123456789)),
-						SessionCount:     random(1, 100),
-						IsBot:            false,
+						Score:      random(0, 700),
+						Followers:  1000,
+						Coins:      23456789,
+						MoneySpent: 0,
+						// LastActiveTs:     time.Now().Add(time.Duration(-1*random(1, 100000)) * time.Second).String(),
+						// AccountCreatedTs: time.Now().Add(time.Duration(-1*random(1, 1000000)) * time.Second).String(),
+						CurrentLevel: 10,
+						SocialID:     "xyz",
+						SessionCount: 1,
+						IsBot:        false,
 					}
 
 					atomic.AddUint64(&i, 1)
